@@ -1,9 +1,9 @@
 name: Gartic RDP (Auto-Loop 6 Hours)
 
 on:
-  workflow_dispatch:      # عشان تشغله يدوي لو حبيت
+  workflow_dispatch:      # تشغيل يدوي
   schedule:
-    - cron: '0 */6 * * *' # ده السطر السحري: هيشتغل لوحده كل 6 ساعات
+    - cron: '0 */6 * * *' # تشغيل تلقائي كل 6 ساعات
 
 jobs:
   gartic-bot:
@@ -45,14 +45,16 @@ jobs:
 
       - name: 3. Create RDP User
         run: |
-          $password = "Start@123456"
+          # الباسورد الجديد
+          $password = "yosefelbot"
           $securePass = ConvertTo-SecureString $password -AsPlainText -Force
           
-          New-LocalUser -Name "YOU" -Password $securePass -AccountNeverExpires -ErrorAction SilentlyContinue
-          Add-LocalGroupMember -Group "Administrators" -Member "YOU"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "YOU"
+          # اليوزر: 1234
+          New-LocalUser -Name "1234" -Password $securePass -AccountNeverExpires -ErrorAction SilentlyContinue
+          Add-LocalGroupMember -Group "Administrators" -Member "1234"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "1234"
           
-          echo "RDP_USER=YOU" >> $env:GITHUB_ENV
+          echo "RDP_USER=1234" >> $env:GITHUB_ENV
           echo "RDP_PASS=$password" >> $env:GITHUB_ENV
 
       - name: 4. Start Tailscale
@@ -65,7 +67,9 @@ jobs:
       - name: 5. Launch Firefox
         run: |
           $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
-          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: YOU | Pass: Start@123456"
+          
+          # رسالة التنبيه بالبيانات الجديدة
+          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: 1234 | Pass: yosefelbot"
           
           Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe"
           
