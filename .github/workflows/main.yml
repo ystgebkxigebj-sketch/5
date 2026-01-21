@@ -1,4 +1,4 @@
-name: Gartic RDP (Auto-Loop 6 Hours)
+name: Gartic RDP (User 1234 - Force CMD)
 
 on:
   workflow_dispatch:
@@ -43,18 +43,18 @@ jobs:
           }
           $policies | ConvertTo-Json -Depth 4 | Out-File "$distDir\policies.json" -Encoding UTF8
 
-      - name: 3. Create RDP User
+      - name: 3. Create RDP User (CMD Force)
         run: |
-          $password = "yosefelbot"
-          $securePass = ConvertTo-SecureString $password -AsPlainText -Force
+          # استخدمنا الطريقة القديمة عشان تقبل الاسم الأرقام
+          # User: 1234
+          # Pass: Yosef12342008
           
-          # الحل: سميناه User1234 عشان الويندوز يقبله
-          New-LocalUser -Name "User1234" -Password $securePass -AccountNeverExpires -ErrorAction SilentlyContinue
-          Add-LocalGroupMember -Group "Administrators" -Member "User1234"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "User1234"
+          net user 1234 Yosef12342008 /add
+          net localgroup Administrators 1234 /add
+          net localgroup "Remote Desktop Users" 1234 /add
           
-          echo "RDP_USER=User1234" >> $env:GITHUB_ENV
-          echo "RDP_PASS=$password" >> $env:GITHUB_ENV
+          echo "RDP_USER=1234" >> $env:GITHUB_ENV
+          echo "RDP_PASS=Yosef12342008" >> $env:GITHUB_ENV
 
       - name: 4. Start Tailscale
         run: |
@@ -67,8 +67,8 @@ jobs:
         run: |
           $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
           
-          # خد بالك من اليوزر الجديد
-          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: User1234 | Pass: yosefelbot"
+          # البيانات النهائية
+          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: 1234 | Pass: Yosef12342008"
           
           Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe"
           
