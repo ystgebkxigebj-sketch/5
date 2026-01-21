@@ -1,14 +1,14 @@
 name: Gartic RDP (Auto-Loop 6 Hours)
 
 on:
-  workflow_dispatch:      # تشغيل يدوي
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # تشغيل تلقائي كل 6 ساعات
+    - cron: '0 */6 * * *'
 
 jobs:
   gartic-bot:
     runs-on: windows-2019
-    timeout-minutes: 360  # 6 ساعات
+    timeout-minutes: 360
 
     steps:
       - name: 1. Configure RDP Network
@@ -17,7 +17,7 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           netsh advfirewall firewall add rule name="Allow-RDP" dir=in action=allow protocol=TCP localport=3389
 
-      - name: 2. Configure Extensions (No Install Needed)
+      - name: 2. Configure Extensions
         run: |
           $firefoxDir = "C:\Program Files\Mozilla Firefox"
           $distDir = "$firefoxDir\distribution"
@@ -45,16 +45,15 @@ jobs:
 
       - name: 3. Create RDP User
         run: |
-          # الباسورد الجديد
           $password = "yosefelbot"
           $securePass = ConvertTo-SecureString $password -AsPlainText -Force
           
-          # اليوزر: 1234
-          New-LocalUser -Name "1234" -Password $securePass -AccountNeverExpires -ErrorAction SilentlyContinue
-          Add-LocalGroupMember -Group "Administrators" -Member "1234"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "1234"
+          # الحل: سميناه User1234 عشان الويندوز يقبله
+          New-LocalUser -Name "User1234" -Password $securePass -AccountNeverExpires -ErrorAction SilentlyContinue
+          Add-LocalGroupMember -Group "Administrators" -Member "User1234"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "User1234"
           
-          echo "RDP_USER=1234" >> $env:GITHUB_ENV
+          echo "RDP_USER=User1234" >> $env:GITHUB_ENV
           echo "RDP_PASS=$password" >> $env:GITHUB_ENV
 
       - name: 4. Start Tailscale
@@ -68,10 +67,10 @@ jobs:
         run: |
           $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
           
-          # رسالة التنبيه بالبيانات الجديدة
-          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: 1234 | Pass: yosefelbot"
+          # خد بالك من اليوزر الجديد
+          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: User1234 | Pass: yosefelbot"
           
           Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe"
           
-          Write-Host "RDP Ready! Will restart automatically every 6 hours."
+          Write-Host "RDP Ready!"
           while ($true) { Start-Sleep -Seconds 300 }
