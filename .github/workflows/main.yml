@@ -1,9 +1,9 @@
-name: Gartic RDP (User: yosef)
+name: Gartic RDP (User: Y)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # تشغيل تلقائي كل 6 ساعات
+    - cron: '0 */6 * * *'
 
 jobs:
   gartic-bot:
@@ -45,15 +45,13 @@ jobs:
 
       - name: 3. Create RDP User
         run: |
-          # اليوزر: yosef
-          # الباسورد: Yosef@12345 (عملتها قوية عشان الويندوز يقبلها فوراً)
+          # اليوزر حرف Y بس
+          net user Y Start@123456 /add
+          net localgroup Administrators Y /add
+          net localgroup "Remote Desktop Users" Y /add
           
-          net user yosef Yosef@12345 /add
-          net localgroup Administrators yosef /add
-          net localgroup "Remote Desktop Users" yosef /add
-          
-          echo "RDP_USER=yosef" >> $env:GITHUB_ENV
-          echo "RDP_PASS=Yosef@12345" >> $env:GITHUB_ENV
+          echo "RDP_USER=Y" >> $env:GITHUB_ENV
+          echo "RDP_PASS=Start@123456" >> $env:GITHUB_ENV
 
       - name: 4. Start Tailscale
         run: |
@@ -66,8 +64,8 @@ jobs:
         run: |
           $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
           
-          # خد بالك من الباسورد
-          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: yosef | Pass: Yosef@12345"
+          # خد بالك من الاسم الجديد
+          echo "::notice title=RDP CONNECT INFO::IP: $ip | User: Y | Pass: Start@123456"
           
           Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe"
           
