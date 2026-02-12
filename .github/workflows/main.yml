@@ -29,7 +29,7 @@ jobs:
               "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi",
               "https://addons.mozilla.org/firefox/downloads/latest/auto-refresh-page/latest.xpi",
               "https://addons.mozilla.org/firefox/downloads/latest/multi-account-containers/latest.xpi",
-              "https://addons.mozilla.org/firefox/downloads/latest/violentmonkey/latest.xpi"
+              "https://addons.mozilla.org/firefox/downloads/latest/tampermonkey/latest.xpi"
           )
 
           $policies = @{
@@ -57,47 +57,58 @@ jobs:
           Start-Process "$env:TEMP\tailscale.exe" -ArgumentList "/quiet", "/norestart" -Wait
           & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gartic-max-ram
 
-      - name: 6. Setup Auto-Start Script
+      - name: 6. Setup Auto-Launch on RDP Login
         run: |
           $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
           echo "::notice title=RDP CONNECT INFO::IP: $ip | User: YOU | Pass: Start@123456"
 
-          # Create a PowerShell script that runs on user login
-          # This script installs the userscript and opens gartic tabs
-          
-          $startupScript = @'
-          # Wait for desktop to be ready
-          Start-Sleep -Seconds 5
-
-          # CHANGE THIS to your raw userscript URL
-          $userscriptUrl = "https://github.com/ystgebkxigebj-sketch/1/raw/refs/heads/main/.github/gartic-token.user.js"
-
-          # Open Firefox with userscript install page first, then gartic tabs
-          # ViolentMonkey auto-detects .user.js URLs and prompts install
+          # Create the launcher script
+          $launcherContent = @'
+          Start-Sleep -Seconds 8
           $firefox = "C:\Program Files\Mozilla Firefox\firefox.exe"
-          
-          Start-Process $firefox -ArgumentList $userscriptUrl
-          Start-Sleep -Seconds 3
-          
-          # Open 6 gartic.io tabs
+          $scriptUrl = "https://github.com/ystgebkxigebj-sketch/1/raw/refs/heads/main/.github/gartic-token.user.js"
+          Start-Process $firefox -ArgumentList $scriptUrl
+          Start-Sleep -Seconds 4
           for ($i = 0; $i -lt 6; $i++) {
               Start-Process $firefox -ArgumentList "-new-tab", "https://gartic.io/"
-              Start-Sleep -Milliseconds 500
+              Start-Sleep -Milliseconds 800
           }
           '@
           
-          # Save the startup script
-          $startupPath = "C:\Users\Public\start-gartic.ps1"
-          $startupScript | Out-File $startupPath -Encoding UTF8
-          
-          # Create a batch file in the Startup folder for ALL users
-          # This runs when anyone logs in via RDP
-          $allUsersStartup = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
-          $batContent = '@echo off' + "`r`n" + 'powershell -ExecutionPolicy Bypass -File "C:\Users\Public\start-gartic.ps1"'
-          $batContent | Out-File "$allUsersStartup\gartic-autostart.bat" -Encoding ASCII
-          
-          Write-Host "Auto-start configured! Firefox will launch on RDP login."
-          Write-Host "Userscript URL: will open in ViolentMonkey for install"
+          $launcherPath = "C:\gartic-launcher.ps1"
+          $launcherContent | Out-File $launcherPath -Encoding UTF8
+          Write-Host "Launcher script created at $launcherPath"
+
+          # Method 1: Scheduled task that runs on ANY user logon
+          $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File C:\gartic-launcher.ps1"
+          $trigger = New-ScheduledTaskTrigger -AtLogOn
+          $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+          Register-ScheduledTask -TaskName "GarticAutoStart" -Action $action -Trigger $trigger -Settings $settings -RunLevel Highest -Force
+          Write-Host "Scheduled task 'GarticAutoStart' registered for logon trigger"
+
+          # Method 2: Also put in Startup folder as backup
+          $startupFolder = "C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+          if (!(Test-Path $startupFolder)) { New-Item -ItemType Directory -Force -Path $startupFolder }
+          $batContent = '@echo off' + "`r`n" + 'powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\gartic-launcher.ps1"'
+          $batContent | Out-File "$startupFolder\gartic.bat" -Encoding ASCII
+          Write-Host "Startup batch created in Default user Startup folder"
+
+          # Method 3: Also put in the YOU user startup folder
+          $youStartup = "C:\Users\YOU\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+          if (!(Test-Path $youStartup)) { 
+              New-Item -ItemType Directory -Force -Path $youStartup 
+          }
+          $batContent | Out-File "$youStartup\gartic.bat" -Encoding ASCII
+          Write-Host "Startup batch created in YOU user Startup folder"
+
+          # Method 4: Registry Run key (most reliable)
+          $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+          Set-ItemProperty -Path $regPath -Name "GarticAutoStart" -Value 'powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\gartic-launcher.ps1"'
+          Write-Host "Registry Run key set"
+
+          Write-Host ""
+          Write-Host "All 4 auto-start methods configured!"
+          Write-Host "Firefox will launch automatically when you RDP in."
 
       - name: 7. Keep Alive
         run: |
